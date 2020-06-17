@@ -11,11 +11,19 @@ class Users(db.Model):
     phone_number = db.Column(db.Integer)
     admin = db.Column(db.Boolean)
     contacts = db.relationship('RegisteredContactsModel', lazy='dynamic')
+    profile_name = db.Column(db.String)
+    profile_pin = db.Column(db.String)
 
     def get_all_contacts(self):
         print(self)
         return {'contacts': [contact.json() for contact in self.contacts.all()]}
         # print(contacts)
+
+    def json(self):
+        return {
+            "profile_name": profile_name,
+            "phone_number": phone_number
+        }
 
 
 class OTPSUP(db.Model):

@@ -182,6 +182,22 @@ def verify_otp_sin():
     return jsonify({'message': 'wrong otp'})
 
 
+@app.route('/savedetails', methods=['POST'])
+@token_required
+def save_details(self):
+
+    data = request.get_json()
+    profilename = data['profilename']
+    userpin = data['userpin']
+    userid = self.id
+    user2 = Users.query.filter_by(id=userid).first()
+    user2.profile_name = profilename
+    user2.profile_pin = userpin
+    db.session.add(user2)
+    db.session.commit()
+    return {'message': 'Details have been saved.'}
+
+
 @app.route('/savecontact', methods=['POST'])
 @token_required
 def save_emergency_contact(self):
@@ -237,6 +253,12 @@ def save_curr_location(self):
     data = request.get_json()
     UserLocation(data['lat'], data['lon'], self.id).save_to_db()
     return {'message': 'Location saved'}
+
+
+@app.route('/userdetails', methods=['GET'])
+@token_required
+def get_user_details(self):
+    return self.json()
 
 
 if __name__ == '__main__':
