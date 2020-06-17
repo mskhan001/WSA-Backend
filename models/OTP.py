@@ -21,8 +21,8 @@ class Users(db.Model):
 
     def json(self):
         return {
-            "profile_name": profile_name,
-            "phone_number": phone_number
+            "profile_name": self.profile_name,
+            "phone_number": self.phone_number
         }
 
 
