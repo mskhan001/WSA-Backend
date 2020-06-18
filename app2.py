@@ -1,4 +1,6 @@
 from flask import Flask, request, jsonify, make_response
+import requests
+import json
 from functools import wraps
 import uuid
 import datetime
@@ -9,6 +11,7 @@ from models.location import UserLocation
 import jwt
 app = Flask(__name__)
 
+API_KEY = "AIzaSyDKyC8k5UNUx5tQ3wDJNz5ipzrsGQ_4zCU"
 app.config['SECRET_KEY'] = 'Th1s1ss3cr3t'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///data.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -259,6 +262,32 @@ def save_curr_location(self):
 @token_required
 def get_user_details(self):
     return self.json()
+
+
+@app.route("/getlandmarks", methods=['POST'])
+def findPlaces(loc=("16.5062", "80.6480"), radius=50):
+    data = request.get_json()
+    lat, lng = data['lat'], data['lon']
+    if not lat and not lng:
+        lat, lng = loc
+    sahithi = []
+    typi = ["hospital", 'atm', 'police station']
+    data = {}
+    i = 0
+    for xy in typi:
+        url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location={lat},{lng}&radius={radius}&type={type}&key={API_KEY}".format(
+            lat=lat, lng=lng, radius=radius, type=xy, API_KEY=API_KEY)
+        print(url)
+        response = requests.get(url)
+        res = json.loads(response.text)
+        print(len(res["results"]))
+        for result in res["results"]:
+            info = ";".join(map(str, [result["name"], result["geometry"]["location"]
+                                      ["lat"], result["geometry"]["location"]["lng"], result["place_id"]]))
+            data[i] = info
+            i = i+1
+
+    return data
 
 
 if __name__ == '__main__':
