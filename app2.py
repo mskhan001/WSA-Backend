@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from models.OTP import Users, OTPSIN, OTPSUP, generateOTP
 from models.contacts import RegisteredContactsModel
 from models.location import UserLocation
+from models.emergency_message import EmergencyMessagesModel
 import jwt
 app = Flask(__name__)
 
@@ -288,6 +289,19 @@ def findPlaces(loc=("16.5062", "80.6480"), radius=50):
             i = i+1
 
     return data
+
+
+@app.route("/sendmessage", methods=['POST'])
+@token_required
+def save_emergency_messages(self):
+    data = request.get_json()
+    print(data)
+    phone_nums = data['phone_nums']
+    message = data['message']
+
+    for phone_num in phone_nums:
+        EmergencyMessagesModel(phone_num, message, self.id).save_to_db()
+    return {'message': 'Emergency messages sent.'}
 
 
 if __name__ == '__main__':

@@ -10,9 +10,11 @@ class Users(db.Model):
     public_id = db.Column(db.String(80), unique=True)
     phone_number = db.Column(db.Integer)
     admin = db.Column(db.Boolean)
-    contacts = db.relationship('RegisteredContactsModel', lazy='dynamic')
     profile_name = db.Column(db.String)
     profile_pin = db.Column(db.String)
+
+    contacts = db.relationship('RegisteredContactsModel', lazy='dynamic')
+    messages = db.relationship('EmergencyMessagesModel', lazy='dynamic')
 
     def get_all_contacts(self):
         print(self)
