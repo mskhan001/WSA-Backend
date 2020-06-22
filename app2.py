@@ -55,7 +55,7 @@ def send_otp_sup():
     print(data)
 
     # assuming user is sending the mobile data in his js
-    mobile_no = data['phone_num']
+    mobile_no = data['mobileno']
 
     # Checking if, the user has alreadt verified his mobile number. If the user has already verified his mobile number,
     # he must go to Sign In
@@ -80,7 +80,7 @@ def send_otp_sup():
     db.session.commit()
 
     # User receives a session ID
-    return jsonify({'session_id': session_id})
+    return jsonify({'sessionid': session_id})
 
 # Below function is for verifying OTP during SIGN UP
 
@@ -91,7 +91,7 @@ def verify_otp_sup():
 
     # JSON payload from the user has OTP and sessionId
     otp = data['OTP']
-    session_id = data['session_id']
+    session_id = data['sessionId']
 
     # instance of OTPSUP class with the unique id that was created
     otp_session = OTPSUP.query.filter_by(session=session_id).first()
@@ -99,9 +99,9 @@ def verify_otp_sup():
     if (otp_session.expiry <= datetime.now()):
         db.session.delete(otp_session)
         db.session.commit()
-        return jsonify({"message": "OTP expired"})
+        return jsonify({"message1": "OTP expired"})
 
-    if otp_session.otp == otp:
+    if str(otp_session.otp) == str(otp):
         otp_session.verified = True
         db.session.commit()
 
@@ -121,7 +121,7 @@ def verify_otp_sup():
     # db.session.delete(otp_session)
     db.session.commit()
 
-    return jsonify({'message': 'OTP false'})
+    return jsonify({'message2': 'OTP false'})
 
 # Below function is for sending OTP during LOG IN
 
@@ -161,9 +161,9 @@ def verify_otp_sin():
     if (otp_session.expiry_sin <= datetime.now()):
         db.session.delete(otp_session)
         db.session.commit()
-        return jsonify({"message": "OTP expired"})
+        return jsonify({"message1": "OTP expired"})
 
-    if otp_session.otp_sin == otp:
+    if str(otp_session.otp_sin) == str(otp):
         otp_session.verified_sin = True
         db.session.commit()
 
@@ -174,16 +174,19 @@ def verify_otp_sin():
 
         # We now search for the user against which the mobile number was generate.
         user = Users.query.filter_by(phone_number=user_mobileno).first()
+        mob_num = str(user.phone_number)
+        user_name = user.profile_name
 
         # This is the unique token that is being generated
         token = jwt.encode({'public_id': user.public_id, 'exp': datetime.utcnow(
         ) + timedelta(minutes=30)}, app.config['SECRET_KEY'])
+        print(token)
 
-        return jsonify({'token': token.decode('UTF-8'), 'message': 'Logged in successfully'})
+        return jsonify({'token': token.decode('UTF-8'), 'message': 'Logged in successfully', 'phone_number': mob_num, 'profile_name': user_name})
 
     # db.session.delete(otp_session)
     db.session.commit()
-    return jsonify({'message': 'wrong otp'})
+    return jsonify({'message2': 'wrong otp'})
 
 
 @app.route('/savedetails', methods=['POST'])
@@ -255,7 +258,8 @@ def get_all_emergency_contacts(self):
 @token_required
 def save_curr_location(self):
     data = request.get_json()
-    UserLocation(data['lat'], data['lon'], self.id).save_to_db()
+    UserLocation(data['lat'], data['lon'],
+                 data['button'], self.id).save_to_db()
     return {'message': 'Location saved'}
 
 
@@ -265,12 +269,12 @@ def get_user_details(self):
     return self.json()
 
 
-@app.route("/getlandmarks", methods=['POST'])
+@app.route("/getlandmarks", methods=['GET'])
 def findPlaces(loc=("16.5062", "80.6480"), radius=50):
-    data = request.get_json()
-    lat, lng = data['lat'], data['lon']
-    if not lat and not lng:
-        lat, lng = loc
+    # data = request.get_json()
+    # lat, lng = data['lat'], data['lon']
+    # if not lat and not lng:
+    lat, lng = loc
     sahithi = []
     typi = ["hospital", 'atm', 'police station']
     data = {}
