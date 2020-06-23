@@ -5,7 +5,7 @@ from functools import wraps
 import uuid
 import datetime
 from datetime import datetime, timedelta
-from models.OTP import Users, OTPSIN, OTPSUP, generateOTP
+from models.OTP import Users, OTPSIN, OTPSUP, generateOTP, OTPCHANGEPIN
 from models.contacts import RegisteredContactsModel
 from models.location import UserLocation
 from models.emergency_message import EmergencyMessagesModel
@@ -114,7 +114,7 @@ def verify_otp_sup():
 
         # This is the unique token that is being generated
         token = jwt.encode({'public_id': new_user.public_id, 'exp': datetime.utcnow(
-        ) + timedelta(minutes=30)}, app.config['SECRET_KEY'])
+        ) + timedelta(minutes=1440)}, app.config['SECRET_KEY'])
 
         return jsonify({'token': token.decode('UTF-8'), 'message': 'registered successfully'})
 
@@ -142,7 +142,7 @@ def send_otp_sin():
         db.session.add(new_otp_sin)
         db.session.commit()
         return jsonify({'session_id': session_id})
-    return make_response('Phone Number not registered', 401, {'WWW-Authenticate': 'Basic realm="Login required!"'})
+    return jsonify({'message': 'Phone Number not registered'})
 
 # Below function is for verifying OTP during SIGN IN
 
@@ -179,7 +179,7 @@ def verify_otp_sin():
 
         # This is the unique token that is being generated
         token = jwt.encode({'public_id': user.public_id, 'exp': datetime.utcnow(
-        ) + timedelta(minutes=30)}, app.config['SECRET_KEY'])
+        ) + timedelta(minutes=1440)}, app.config['SECRET_KEY'])
         print(token)
 
         return jsonify({'token': token.decode('UTF-8'), 'message': 'Logged in successfully', 'phone_number': mob_num, 'profile_name': user_name})
@@ -200,9 +200,12 @@ def save_details(self):
     user2 = Users.query.filter_by(id=userid).first()
     user2.profile_name = profilename
     user2.profile_pin = userpin
+    mob_num = user2.phone_number
+    user_name = user2.profile_name
     db.session.add(user2)
     db.session.commit()
-    return {'message': 'Details have been saved.'}
+    print('This was called')
+    return {'message': 'Details have been saved.', 'phone_number': mob_num, 'profile_name': user_name}
 
 
 @app.route('/savecontact', methods=['POST'])
@@ -269,12 +272,13 @@ def get_user_details(self):
     return self.json()
 
 
-@app.route("/getlandmarks", methods=['GET'])
+@app.route("/getlandmarks", methods=['POST'])
 def findPlaces(loc=("16.5062", "80.6480"), radius=50):
-    # data = request.get_json()
-    # lat, lng = data['lat'], data['lon']
-    # if not lat and not lng:
-    lat, lng = loc
+    data = request.get_json()
+    print(data)
+    lat, lng = data['lat'], data['lon']
+    if not lat and not lng:
+        lat, lng = loc
     sahithi = []
     typi = ["hospital", 'atm', 'police station']
     data = {}
@@ -291,7 +295,7 @@ def findPlaces(loc=("16.5062", "80.6480"), radius=50):
                                       ["lat"], result["geometry"]["location"]["lng"], result["place_id"]]))
             data[i] = info
             i = i+1
-
+        print(data)
     return data
 
 
@@ -306,6 +310,73 @@ def save_emergency_messages(self):
     for phone_num in phone_nums:
         EmergencyMessagesModel(phone_num, message, self.id).save_to_db()
     return {'message': 'Emergency messages sent.'}
+
+
+@app.route('/changepinsendotp', methods=['GET'])
+@token_required
+def change_pin_sendotp(self):
+    otp_gen = generateOTP()
+    print(otp_gen)
+    session_changepin = str(uuid.uuid4())
+    print(session_changepin)
+    t = datetime.now()+timedelta(seconds=120)
+    new_otp_sin = OTPCHANGEPIN(session_changepin=session_changepin, otp_changepin=otp_gen,
+                               expiry_changepin=t, verified_changepin=False)
+    db.session.add(new_otp_sin)
+    db.session.commit()
+    return jsonify({'session_id': session_changepin})
+
+
+@app.route('/changepinverifyotp', methods=['POST'])
+@token_required
+def change_pin_verifypin(self):
+    data = request.get_json()
+
+    # JSON payload from the user has session ID
+    otp = data['OTP']
+    session_id = data['session_id']
+
+    # instance of OTPSIN class with the unique id that was created
+    otp_session = OTPCHANGEPIN.query.filter_by(
+        session_changepin=session_id).first()
+
+    if (otp_session.expiry_changepin <= datetime.now()):
+        db.session.delete(otp_session)
+        db.session.commit()
+        return jsonify({"message1": "OTP expired"})
+
+    if str(otp_session.otp_changepin) == otp:
+        otp_session.verified_changepin = True
+        db.session.commit()
+        return jsonify({'message': 'OTP true'})
+
+    # db.session.delete(otp_session)
+    db.session.commit()
+    return jsonify({'message2': 'wrong otp'})
+
+
+@app.route('/enternewpin', methods=['POST'])
+@token_required
+def enter_new_pin(self):
+    data = request.get_json()
+    newpin = data['new pin']
+    userid = self.id
+    user2 = Users.query.filter_by(id=userid).first()
+    user2.profile_pin = newpin
+    db.session.add(user2)
+    db.session.commit()
+    print(user2.profile_pin)
+    return jsonify({"message": 'PIN updated successfully'})
+
+
+@app.route("/safetypinverify", methods=['POST'])
+@token_required
+def verify_safety_pin(self):
+    data = request.get_json()
+    safetypin = data['PIN']
+    if(self.profile_pin == safetypin):
+        return{'message': 'Marked as Safe'}
+    return{'message2': 'Try again'}
 
 
 if __name__ == '__main__':

@@ -8,7 +8,7 @@ from db import db
 class Users(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     public_id = db.Column(db.String(80), unique=True)
-    phone_number = db.Column(db.Integer)
+    phone_number = db.Column(db.String)
     admin = db.Column(db.Boolean)
     profile_name = db.Column(db.String)
     profile_pin = db.Column(db.String)
@@ -42,6 +42,13 @@ class OTPSIN(db.Model):
     expiry_sin = db.Column(db.DateTime)
     mobileno_sin = db.Column(db.Integer)
     verified_sin = db.Column(db.Boolean)
+
+
+class OTPCHANGEPIN(db.Model):
+    otp_changepin = db.Column(db.Integer)
+    session_changepin = db.Column(db.String(50), primary_key=True)
+    expiry_changepin = db.Column(db.DateTime)
+    verified_changepin = db.Column(db.Boolean)
 
 
 def generateOTP():
