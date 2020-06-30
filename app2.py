@@ -273,7 +273,7 @@ def get_user_details(self):
 
 
 @app.route("/getlandmarks", methods=['POST'])
-def findPlaces(loc=("16.5062", "80.6480"), radius=50):
+def findPlaces(loc=("16.5062", "80.6480"), radius=500):
     data = request.get_json()
     print(data)
     lat, lng = data['lat'], data['lon']
